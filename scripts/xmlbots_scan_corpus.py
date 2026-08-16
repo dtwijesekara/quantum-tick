@@ -1,11 +1,18 @@
-"""Scan the ORSTAC XML bot corpus, parse every Rise/Fall bot on R_10-R_100,
-and report parse success/failure and candle- vs tick-based split.
+"""Scan an ORSTAC-style Deriv Bot XML corpus, parse every Rise/Fall bot on
+R_10-R_100, and report parse success/failure and candle- vs tick-based
+split.
 
 Usage: python scripts/xmlbots_scan_corpus.py [--corpus-dir PATH]
+       (or set the XMLBOTS_CORPUS_DIR environment variable)
+
+Expects a directory containing a `Bots_XML/` subfolder of Deriv Bot
+(DBot/Blockly) XML exports -- see https://github.com/alanvito1/ORSTAC for
+the corpus this was built against (not included in this repo).
 """
 
 import argparse
 import collections
+import os
 import sys
 from pathlib import Path
 
@@ -58,9 +65,12 @@ def main(corpus_dir: Path) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--corpus-dir",
-        type=Path,
-        default=Path(r"C:\Users\DT Wijesekara\Documents\Projects\Deriv automation Projects\ORSTAC-master"),
+        "--corpus-dir", type=Path,
+        default=Path(os.environ["XMLBOTS_CORPUS_DIR"]) if "XMLBOTS_CORPUS_DIR" in os.environ else None,
+        help="Directory containing a Bots_XML/ subfolder of Deriv Bot XML exports. "
+             "Falls back to the XMLBOTS_CORPUS_DIR environment variable.",
     )
     args = parser.parse_args()
+    if args.corpus_dir is None:
+        parser.error("pass --corpus-dir or set the XMLBOTS_CORPUS_DIR environment variable")
     main(args.corpus_dir)

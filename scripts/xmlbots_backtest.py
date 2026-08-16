@@ -1,19 +1,25 @@
-"""End-to-end: load the ORSTAC XML bot corpus, dedupe to distinct
-strategies, backtest every one against every cached R_10-R_100 symbol
-through the same no-lookahead engine used for v8/breakout/random, and
-report results with a Bonferroni correction sized to the actual number of
-comparisons run (85 strategies x 5 symbols = 425 out-of-sample tests, so a
-handful of "p<0.05" hits are expected by chance alone and must not be
-mistaken for a real edge).
+"""End-to-end: load an ORSTAC-style Deriv Bot XML corpus, dedupe to
+distinct strategies, backtest every one against every cached R_10-R_100
+symbol through the same no-lookahead engine used for v8/breakout/random,
+and report results with a Bonferroni correction sized to the actual number
+of comparisons run (so a handful of "p<0.05" hits are expected by chance
+alone and must not be mistaken for a real edge).
 
-Usage: python scripts/xmlbots_backtest.py
+Usage: python scripts/xmlbots_backtest.py [--corpus-dir PATH]
+       (or set the XMLBOTS_CORPUS_DIR environment variable)
+
+Expects a directory containing a `Bots_XML/` subfolder of Deriv Bot
+(DBot/Blockly) XML exports -- see https://github.com/alanvito1/ORSTAC for
+the corpus this was built against (not included in this repo).
 
 Requires: scripts/fetch_history.py already run (uses the cached candles,
 no re-fetch) and a live connection only to quote payout ratios.
 """
 
+import argparse
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -33,16 +39,15 @@ from quantum_tick.xmlbots.corpus import dedupe_by_logic, load_candle_compatible_
 
 log = setup_logging("quantum_tick", "logs/xmlbots_backtest.log")
 
-CORPUS_DIR = Path(r"C:\Users\DT Wijesekara\Documents\Projects\Deriv automation Projects\ORSTAC-master")
 IN_SAMPLE_FRACTION = 0.7
 
 
-async def main() -> None:
+async def main(corpus_dir: Path) -> None:
     settings = get_settings()
     granularity = settings.timeframe_seconds
 
     log.info("Loading and parsing the ORSTAC corpus...")
-    bots = load_candle_compatible_bots(CORPUS_DIR)
+    bots = load_candle_compatible_bots(corpus_dir)
     distinct = dedupe_by_logic(bots)
     log.info(f"{len(bots)} candle-compatible Rise/Fall bots on R_10-R_100 -> {len(distinct)} distinct strategies "
               f"after dedup")
@@ -145,4 +150,14 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--corpus-dir", type=Path,
+        default=Path(os.environ["XMLBOTS_CORPUS_DIR"]) if "XMLBOTS_CORPUS_DIR" in os.environ else None,
+        help="Directory containing a Bots_XML/ subfolder of Deriv Bot XML exports. "
+             "Falls back to the XMLBOTS_CORPUS_DIR environment variable.",
+    )
+    args = parser.parse_args()
+    if args.corpus_dir is None:
+        parser.error("pass --corpus-dir or set the XMLBOTS_CORPUS_DIR environment variable")
+    asyncio.run(main(args.corpus_dir))

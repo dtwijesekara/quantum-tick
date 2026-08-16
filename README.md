@@ -7,6 +7,16 @@ engine, and a live execution service — rebuilt on an N-tier architecture
 from the original single-file `dt_bot_v8.py` (kept at
 [legacy/dt_bot_v8.py](legacy/dt_bot_v8.py) for reference).
 
+> **Not financial advice, and not a profitable trading system.** This
+> project's own research ([docs/research/RESEARCH_FINDINGS.md](docs/research/RESEARCH_FINDINGS.md))
+> rigorously tested six independent strategy families — including 35 real
+> strategies mined from a 3,358-bot community collection — against real
+> historical data and found no statistically validated edge in any of
+> them. It's shared as an engineering and research writeup (API
+> integration, backtesting methodology, statistical rigor), not as a
+> trading signal source. `DRY_RUN=true` by default; see
+> [Safety](#safety) below.
+
 ## Why this needed rebuilding, not just a config fix
 
 Deriv now runs two API generations in parallel. The credentials in `.env`

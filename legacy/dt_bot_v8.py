@@ -116,7 +116,11 @@ def green(msg):
 
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
-API_TOKEN  = '1Bh3y28HgfSCYVf'
+# Kept for reference only -- this legacy in-band auth flow no longer works
+# against current Deriv credentials; see README.md and
+# docs/postmortem/PROJECT_POSTMORTEM.md. Original token redacted (already
+# rotated/dead) before this file was made public.
+API_TOKEN  = 'REDACTED_ROTATED_TOKEN'
 APP_ID     = 1089
 SYMBOLS    = ['R_10', 'R_25', 'R_50', 'R_75', 'R_100']
 TIMEFRAME  = 60      # 1-minute candles
