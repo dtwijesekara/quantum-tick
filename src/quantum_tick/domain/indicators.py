@@ -1,11 +1,9 @@
-"""SMA / EMA / RSI / MACD, the indicator vocabulary actually used across the
-ORSTAC XML bot corpus (see docs/research/xmlbots.md) -- no Bollinger/
-Stochastic/ADX block types exist in that corpus despite one bot's own
-marketing description claiming Bollinger logic, so those aren't implemented.
+"""SMA / EMA / RSI / MACD -- the indicator vocabulary actually used across
+the ORSTAC XML bot corpus (see docs/research/RESEARCH_FINDINGS.md section
+8); no Bollinger/Stochastic/ADX block types exist there.
 
 Each function takes a plain `list[float]` price series (oldest-first) so
-the same implementation works whether the series is candle closes or raw
-ticks -- the XML bots mix both as indicator input.
+the same implementation works for candle closes or raw ticks.
 """
 
 from __future__ import annotations

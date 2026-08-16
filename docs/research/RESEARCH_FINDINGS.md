@@ -161,7 +161,7 @@ well-motivated hypothesis.
 
 Picking up the untested avenues above, plus re-testing the actual v8
 trading ruleset (not just raw direction statistics) against real data.
-Reproducible via `scripts/run_backtest.py`, `scripts/run_backtest_breakout.py`,
+Reproducible via `scripts/run_backtest.py --strategy v8|breakout`,
 `scripts/research_cross_symbol.py`, `scripts/run_position_sizing_comparison.py`.
 
 **v8's full SMC-style ruleset** (trend + BOS/CHoCH + ENGULFING/HOP entries +

@@ -1,15 +1,13 @@
 """Live trading orchestration -- the modularized equivalent of dt_bot_v8's
-run_bot() loop. Same scan cadence and risk limits, now built on DerivClient
-+ SignalService + an injected trade repository instead of module globals.
+run_bot() loop, built on DerivClient + SignalService + an injected trade
+repository instead of module globals.
 
-Safety interlock: real orders only ever fire when both
+Safety interlock: real orders only fire when both
 `settings.dry_run is False` AND `settings.deriv_account_type == "real"`.
-Anything else (the default) logs what *would* have been traded instead of
-calling `buy`. This project's own research findings
-(docs/research/RESEARCH_FINDINGS.md) found no statistically validated edge
-for very similar pattern-based signals on these symbols, so real-money
-trading should stay opt-in until this specific v8 ruleset has been
-backtested and shown a validated, out-of-sample edge.
+Anything else (the default) logs what *would* have been traded. This
+project's own backtests (docs/research/RESEARCH_FINDINGS.md) found no
+statistically validated edge for this v8 ruleset, so real-money trading
+should stay opt-in.
 """
 
 from __future__ import annotations

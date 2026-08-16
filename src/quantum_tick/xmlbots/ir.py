@@ -1,12 +1,11 @@
 """Intermediate representation for a Deriv Bot (DBot/Blockly) XML strategy's
-entry logic. The parser (parser.py) turns raw XML into this; the
-interpreter (interpreter.py) evaluates it against a live candle window.
+entry logic. parser.py turns raw XML into this; interpreter.py evaluates it
+against a live candle window.
 
-Deliberately does not try to represent every Blockly block that exists --
-only the vocabulary actually observed across the ORSTAC corpus (see
-docs/research/xmlbots.md). An unrecognized block anywhere in a bot's entry
-logic makes that bot `ParsedBot.supported = False` rather than guessing at
-its meaning.
+Only represents the Blockly vocabulary actually observed in the ORSTAC
+corpus (see docs/research/RESEARCH_FINDINGS.md section 8) -- an
+unrecognized block anywhere in a bot's entry logic makes that bot
+`BotDefinition.supported = False` rather than guessing at its meaning.
 """
 
 from __future__ import annotations

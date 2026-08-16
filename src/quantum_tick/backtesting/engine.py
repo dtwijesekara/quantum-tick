@@ -1,23 +1,11 @@
 """Bar-by-bar replay against real historical candles -- one engine shared by
-every strategy (domain/strategies/*), not one per strategy. Previously v8
-and breakout each had their own near-duplicate loop; adding a new strategy
-now means writing a domain/strategies/*.py class, nothing here changes.
+every Strategy (domain/strategies/*), so adding a new one means writing a
+class there, not a new engine.
 
-No-lookahead guarantee: at replay step k, a strategy only ever sees
-candles[0:k+1]. v8's `is_late_entry` filter (the only filter that reads the
-"still forming" last candle) is disabled in backtest mode -- there's no
-historical sub-candle tick data to evaluate it against honestly. Entry
-executes at that candle's OPEN, so every input to the trading decision was
-already fully closed by the time of entry. See outcomes.py for the
-entry/expiry pricing rationale.
-
-One open position per symbol at a time (after a signal fires, replay skips
-ahead past its expiry before scanning again) -- this mirrors the live bot's
-own constraint of not re-entering the same symbol mid-trade, though the live
-bot additionally serializes *across* all symbols (only one position open
-system-wide); this backtest evaluates each symbol's series independently, so
-combined signal counts across symbols are an upper bound on live trade
-frequency, not a prediction of it.
+No-lookahead: at replay step k, a strategy only sees candles[0:k+1], and
+entry executes at that window's last candle's OPEN, so every decision input
+was already fully closed. One open position per symbol at a time -- after a
+signal fires, replay skips ahead past its expiry before scanning again.
 """
 
 from __future__ import annotations

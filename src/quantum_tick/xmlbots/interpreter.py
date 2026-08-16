@@ -1,13 +1,11 @@
 """Evaluates a parsed BotDefinition's entry logic against a live candle
 window. Kept separate from parser.py: the parser turns XML into IR once,
-the interpreter runs that IR every replay step (called once per candle
-during backtesting, so this stays allocation-light).
+the interpreter runs that IR every replay step.
 
-Raises RequiresTickData for any bot whose indicator input is raw ticks
-(TicksSeries) -- this backtest phase only has candle-close data cached, and
-approximating a tick-based indicator with candle closes would silently
-misrepresent what the bot actually does (see docs/research/xmlbots.md for
-why tick-based bots are a separate, not-yet-built phase).
+Raises RequiresTickData for any bot whose indicator input is raw ticks --
+this backtest phase only has candle-close data cached, and approximating a
+tick-based indicator with candle closes would misrepresent what the bot
+actually does (see docs/research/RESEARCH_FINDINGS.md section 8).
 """
 
 from __future__ import annotations
@@ -96,19 +94,15 @@ def _evaluate_expr(expr: Expr, candles: list[dict]) -> float | None:
         return expr.value
 
     if isinstance(expr, TickValue):
-        # last fully-closed price at decision time -- candles[-1] is the
-        # entry/forming candle and must not influence the decision (see
-        # backtesting/engine.py's no-lookahead discipline).
+        # last fully-closed price -- candles[-1] is the still-forming entry
+        # candle and must not influence the decision (no-lookahead).
         return candles[-2]["close"]
 
     if isinstance(expr, IsCandleBlack):
         return 0.0 if is_green(candles[-2]) else 1.0
 
     if isinstance(expr, CandleField):
-        # standalone use (e.g. "close > SMA(close,20)"), not as an
-        # indicator's input source -- last fully-closed candle, same
-        # no-lookahead rule as TickValue above.
-        return candles[-2][expr.field]
+        return candles[-2][expr.field]  # standalone use, e.g. "close > SMA(close,20)"
 
     if isinstance(expr, IndicatorCall):
         series = _resolve_series(expr.input_source, candles)
@@ -133,10 +127,7 @@ def _resolve_series(source, candles: list[dict]) -> list[float]:
     if isinstance(source, TicksSeries):
         raise RequiresTickData("indicator input is raw ticks, not candle closes")
     if isinstance(source, CandleField):
-        # exclude candles[-1] (the still-forming entry candle) -- only
-        # fully-closed candles may feed a decision.
-        closed = candles[:-1]
-        return [c[source.field] for c in closed]
+        return [c[source.field] for c in candles[:-1]]  # exclude the still-forming entry candle
     raise TypeError(f"unhandled input source type: {type(source)}")
 
 

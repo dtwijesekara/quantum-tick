@@ -11,10 +11,7 @@ _MIN_WINDOW = 30
 def _max_period(bot: BotDefinition) -> int:
     """Largest lookback any indicator in this bot's entry logic needs, so
     `required_window` is sized per-bot instead of a fixed guess that could
-    silently starve a bot using e.g. SMA(200) of enough history to ever
-    fire (a too-small window under-detects, it doesn't misfire -- see
-    interpreter.py's None-on-insufficient-history handling -- but sizing it
-    properly means results reflect the bot's real signal frequency)."""
+    silently under-detect a bot using e.g. SMA(200)."""
 
     def expr_period(expr: Expr) -> int:
         if isinstance(expr, IndicatorCall):
@@ -43,15 +40,11 @@ def _condition_period(condition, expr_period) -> int:
 
 class XmlBotStrategy:
     """Adapter over a parsed ORSTAC XML bot's entry logic (xmlbots/ir.py +
-    interpreter.py). One instance per distinct strategy signature; the
-    engine gives every symbol its own fresh instance already (see
-    backtesting/engine.run_backtest's `strategy_factory` contract).
+    interpreter.py).
 
-    Duration approximation: bots specifying duration in seconds (< 1 real
-    candle) are floored to 1 minute -- the finest granularity this
-    backtest's candle cache has. That turns "resolve in 15 real seconds"
-    into "resolve at the close of the entry candle", the closest honest
-    approximation without tick-level data.
+    Bots specifying duration in seconds are floored to 1 minute -- the
+    finest granularity this backtest's candle cache has, and the closest
+    honest approximation without tick-level data.
     """
 
     def __init__(self, bot: BotDefinition):

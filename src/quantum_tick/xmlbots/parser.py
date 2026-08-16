@@ -127,14 +127,11 @@ def _find_duration(root: ET.Element) -> tuple[str, int]:
 # ---- variable table --------------------------------------------------------
 #
 # Many bots compute an indicator once ("set RSI = rsi(close, 14)") and
-# reference the named variable in conditions afterward, rather than inlining
-# the indicator call. So the table maps name -> Expr (a literal Number OR an
-# IndicatorCall/TickValue/etc.), built in document order so a variable's own
-# definition can reference earlier variables. A variable whose definition
-# itself can't be parsed (procedure call, unsupported block, forward
-# reference) is simply left out of the table -- any condition that then
-# references it correctly reports "unresolvable variable reference" rather
-# than guessing.
+# reference the named variable afterward instead of inlining the call. The
+# table maps name -> Expr, built in document order so a variable's own
+# definition can reference earlier variables; one that can't be parsed is
+# simply left out, so a later reference correctly reports "unresolvable"
+# rather than guessing.
 
 
 def _build_variable_table(root: ET.Element) -> dict[str, Expr]:
@@ -178,19 +175,15 @@ def _find_entry_logic(root: ET.Element, variables: dict[str, Expr]) -> EntryLogi
     if top is None:
         raise UnsupportedBot("before_purchase stack is empty")
 
-    # `_parse_action` already walks the whole chain (skipping `variables_set`,
-    # `notify`, etc.) looking for a `purchase` or `controls_if` -- covers
-    # both "starts with controls_if" and "some setup blocks, then
-    # controls_if" and "no condition at all, just an unconditional
-    # purchase" in one pass.
+    # `_parse_action` walks the whole chain (skipping `variables_set`,
+    # `notify`, etc.), so this covers "starts with controls_if", "setup
+    # blocks then controls_if", and "no condition, just a purchase" alike.
     action = _parse_action(stack, variables)
     if isinstance(action, EntryLogic):
         return action
     if isinstance(action, Purchase):
-        # Unconditional entry logic: some bots always buy the same side
-        # with no condition at all (a real, if trivial, hypothesis worth
-        # backtesting on its own merits -- not the same claim as their
-        # money-management description, which is handled separately).
+        # Some bots always buy the same side unconditionally -- a real,
+        # if trivial, hypothesis worth backtesting on its own merits.
         return EntryLogic(branches=(), default=action)
 
     raise UnsupportedBot(f"before_purchase stack has no purchase or controls_if anywhere (starts with {top.get('type')})")

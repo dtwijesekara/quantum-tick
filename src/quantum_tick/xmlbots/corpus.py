@@ -35,12 +35,9 @@ def find_candidate_files(bots_xml_dir: Path) -> list[Path]:
 
 def load_candle_compatible_bots(corpus_dir: Path) -> list[BotDefinition]:
     """Every successfully-parsed Rise/Fall bot on a target symbol whose
-    entry logic can be evaluated from candle-close data alone AND whose
-    contract duration is time-based (s/m/h) rather than tick-based --
-    excludes both a tick-based *indicator input* (bot_requires_tick_data)
-    and a tick-based *contract duration* (a duration of N ticks resolves in
-    a few seconds, faster than our 1-minute candle granularity can honestly
-    score) -- see docs/research/xmlbots.md."""
+    entry logic and contract duration are both time-based (s/m/h), not
+    ticks -- a tick-duration contract resolves in seconds, faster than our
+    1-minute candle granularity can honestly score."""
     candidates = find_candidate_files(corpus_dir / "Bots_XML")
     bots = []
     for fp in candidates:
@@ -66,13 +63,12 @@ class DistinctStrategy:
 
 
 def dedupe_by_logic(bots: list[BotDefinition]) -> list[DistinctStrategy]:
-    """Groups bots whose entry logic + duration are structurally identical
-    (ignoring which symbol the original file happened to target, and which
-    of the many near-duplicate filenames it came from) -- community bot
-    collections are mostly a handful of real strategies copied under many
-    names with cosmetic stake-size differences, not independent ideas.
-    Each distinct strategy is then backtested against every target symbol
-    regardless of which one its source file specified."""
+    """Groups bots whose entry logic + duration are structurally identical,
+    ignoring which symbol/filename the original file happened to use --
+    community bot collections are mostly a handful of real strategies
+    copied under many names with cosmetic stake-size differences. Each
+    distinct strategy is backtested against every target symbol regardless
+    of which one its source file specified."""
     groups: dict[str, DistinctStrategy] = {}
     for bot in bots:
         signature = f"{bot.duration_unit}|{bot.duration_value}|{bot.entry_logic!r}"

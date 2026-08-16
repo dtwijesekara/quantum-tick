@@ -15,22 +15,18 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    # Deriv credentials / connection
     deriv_app_id: str
     deriv_api_token: str
     deriv_account_type: str = "demo"  # "demo" or "real"
     deriv_currency: str = "USD"
 
-    # Instruments
     symbols: str = "R_10,R_25,R_50,R_75,R_100"
     timeframe_seconds: int = 60
 
-    # Risk / sizing
     stake: float = 1.00
     max_daily_loss: float = 10.00
     max_trades_per_day: int = 10
 
-    # Persistence / logging
     database_url: str = "sqlite:///./data/quantum_tick.db"
     log_level: str = "INFO"
 

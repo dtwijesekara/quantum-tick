@@ -50,13 +50,11 @@ def simulate_martingale(
     multiplier: float = 2.0,
     ruin_bankroll: float | None = None,
 ) -> SizingResult:
-    """Classic martingale: stake resets to `base_stake` after a win, and is
-    multiplied by `multiplier` after each loss (chasing recovery of the
-    losses so far in one win). `ruin_bankroll`, if given, is the largest
-    single stake the simulated trader could actually cover -- the first
-    trade requiring more than that is recorded as `ruin_index` and the
-    simulation stops there, matching what would really happen to an account
-    of that size."""
+    """Classic martingale: stake resets to `base_stake` after a win and is
+    multiplied by `multiplier` after each loss. `ruin_bankroll`, if given,
+    is the largest stake the simulated trader could cover -- the first
+    trade requiring more than that stops the simulation at `ruin_index`,
+    matching what would really happen to an account of that size."""
 
     cumulative = 0.0
     peak = 0.0

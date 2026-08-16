@@ -1,18 +1,10 @@
-"""Hypothesis: does one volatility index's return lead another's?
+"""Hypothesis: does one volatility index's return lead another's? Uses the
+candle cache already built by fetch_history.py -- no new network calls.
 
-Flagged as an untested avenue in docs/research/RESEARCH_FINDINGS.md's
-"Overall conclusion". Uses the candle cache already built by
-fetch_history.py -- all 5 symbols were fetched over the same wall-clock
-window at the same granularity, so their epochs line up and this needs no
-new network calls.
-
-For every symbol pair (A, B) and lag k in [-5..5] (k=0 is simultaneous,
-k>0 means A leads B by k minutes), computes Pearson correlation between
-A's return at t and B's return at t+k. Bonferroni-corrects the significance
-threshold for the number of (pair, lag) combinations tested -- with 10
-pairs x 11 lags = 110 tests, ~5-6 would clear p<0.05 by chance alone if
-there were truly no relationship, so the bar is raised accordingly instead
-of reporting raw p<0.05 hits as findings.
+For every symbol pair (A, B) and lag k in [-5..5] minutes, computes Pearson
+correlation between A's return at t and B's return at t+k, Bonferroni-
+corrected for the 10 pairs x 11 lags = 110 comparisons (otherwise ~5-6
+would clear p<0.05 by chance alone even with no real relationship).
 
 Usage: python scripts/research_cross_symbol.py
 """

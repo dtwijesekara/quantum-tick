@@ -1,24 +1,12 @@
 """Score a single signal against real historical candles.
 
-Entry executes at the OPEN of the candle immediately after the signal
-candle (the earliest fair, no-lookahead entry point -- see engine.py for why
-sub-candle "late entry" timing can't be simulated from OHLC-only history).
-
-Expiry: a `duration_mins`-minute Rise/Fall contract on 1-minute candles pays
-on the price `duration_mins` candles after entry. If entry is the open of
-candle at index `entry_idx`, the expiry price is the CLOSE of the candle at
-index `entry_idx + duration_mins - 1` (that close *is* the price exactly
-`duration_mins` minutes after entry). Worked example: entry at candle idx 0
-(covers T..T+60), duration=3min -> expiry at T+180 -> that's the close of
-the candle covering T+120..T+180, which is idx 0+3-1=2. Verified against
-docs/postmortem/PROJECT_POSTMORTEM.md item 12's warning to hand-check
-multi-term arithmetic before trusting it.
-
-Outcome (won/lost) compares the *side of entry* at expiry, not an
-intermediate touch -- CALL wins iff expiry_price > entry_price, PUT wins iff
-expiry_price < entry_price. This is what a Rise/Fall contract actually pays
-on. Scoring against a touch of some intermediate level would be scoring
-against a proxy instead of the real payoff (postmortem Checklist B item 6).
+Entry is the OPEN of the candle right after the signal candle (the
+earliest no-lookahead entry point). Expiry price is the CLOSE of the
+candle at `entry_idx + duration_mins - 1` -- e.g. entry at idx 0,
+duration=3min -> expiry at the close of idx 2, exactly 3 minutes later.
+Outcome compares the side of entry at expiry (CALL wins iff
+expiry > entry), not a touch of some intermediate level -- that's what a
+Rise/Fall contract actually pays on.
 """
 
 from __future__ import annotations

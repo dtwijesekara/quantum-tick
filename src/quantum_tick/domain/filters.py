@@ -2,9 +2,9 @@
 
 Each takes `candles` (oldest-first, last entry = currently forming) plus
 `StrategyParams` and returns either a decision or `(bool, reason)`. No
-logging, no global state -- callers (SignalEngine, backtester) decide what
-to do with the result. Behavior is unchanged from dt_bot_v8.py; only the
-hardcoded globals became explicit parameters.
+logging, no global state -- callers (SignalService, the backtester) decide
+what to do with the result. Behavior is unchanged from dt_bot_v8.py; only
+the hardcoded globals became explicit parameters.
 """
 
 from __future__ import annotations
