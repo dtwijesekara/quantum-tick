@@ -10,12 +10,11 @@ script into an N-tier Python project: a pluggable strategy framework, a
 real-history backtesting engine with proper statistical rigor, and a live
 execution service. Built around one question — does any Rise/Fall strategy
 on Deriv's Volatility indices (R_10–R_100) have a real, out-of-sample edge?
-— and answered it honestly across six independent lines of evidence.
+— and answered it honestly across several independent lines of evidence.
 
 > **Not financial advice, and not a profitable trading system.** This
 > project's own research ([docs/research/RESEARCH_FINDINGS.md](docs/research/RESEARCH_FINDINGS.md))
-> tested six independent strategy families — including 35 real strategies
-> mined from a 3,358-bot community collection — against real historical
+> tested multiple independent strategy families against real historical
 > data and found no statistically validated edge in any of them. It's
 > shared as an engineering and research writeup, not a trading signal
 > source. `DRY_RUN=true` by default; see [Safety](#safety).
@@ -57,10 +56,10 @@ src/quantum_tick/
                   (flat vs. martingale) simulation, reporting.
   research/       General-purpose stats (autocorrelation, runs test,
                   cross-series correlation) for edge-hunting.
-  xmlbots/        Parser + IR + interpreter that turns a Deriv Bot (DBot)
+  xmlbots/        Parser + IR + interpreter that turns any Deriv Bot (DBot)
                   Blockly XML export into the same Strategy interface as
-                  everything else, so a real external bot collection can
-                  be mined and backtested like any in-house strategy.
+                  everything else, so an externally-authored strategy can
+                  be backtested exactly like an in-house one.
 scripts/          CLI entrypoints — see Usage below.
 tests/            Unit tests for the domain/backtesting/xmlbots layers.
 docs/postmortem/  Deriv API integration lessons from this project's history.
@@ -116,7 +115,7 @@ python -m pytest
 ## 🔬 The research, summarized
 
 Full writeup: [docs/research/RESEARCH_FINDINGS.md](docs/research/RESEARCH_FINDINGS.md).
-Six independent tests, all converging on the same answer — **no
+Several independent tests, all converging on the same answer — **no
 exploitable directional edge in R_10–R_100 Rise/Fall**:
 
 1. **v8's SMC-style ruleset** (trend + BOS/CHoCH + entry patterns) — no
@@ -128,10 +127,7 @@ exploitable directional edge in R_10–R_100 Rise/Fall**:
    both strategies above.
 4. **Cross-symbol correlation and day-of-week bias** — nothing survives
    correction; no effect either way.
-5. **35 real strategies mined from 3,358 community-authored Deriv bots**
-   (see `xmlbots/`) — 0 of 140 out-of-sample comparisons survived a
-   Bonferroni correction with a positive edge.
-6. **Why**: Deriv states these indices run on an audited CSPRNG —
+5. **Why**: Deriv states these indices run on an audited CSPRNG —
    cryptographically unpredictable by design, not just empirically so —
    which an independent 15-million-tick external study also confirms.
 
@@ -148,7 +144,7 @@ keep inventing rule variants against the same 60-day dataset — at 5%
 significance, roughly 1 in 20 genuinely edge-less strategies will look
 "significant" by chance alone, so open-ended searching eventually
 manufactures a false positive rather than finding a real one. Genuinely
-untested avenues: the 658 tick-duration ORSTAC bots (needs real tick data
-and a parallel engine, not built here), Step Index / Jump Index (confirmed
-to offer Rise/Fall, unlike Range Break/Boom-Crash), or a market with real
-order-flow microstructure instead of an RNG.
+untested avenues: Step Index / Jump Index (confirmed to offer Rise/Fall,
+unlike Range Break/Boom-Crash), tick-duration contracts (needs real
+tick-level data and a parallel engine, not built here), or a market with
+real order-flow microstructure instead of an RNG.
