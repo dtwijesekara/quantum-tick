@@ -140,7 +140,7 @@ determines payout" mistake this project's own postmortem warns about
 contract types forced a check against the real payoff, not because it was
 anticipated in advance.
 
-## Overall conclusion
+## Overall conclusion (as of the original research phase)
 
 No real, exploitable, out-of-sample-stable edge was found for:
 - Rise/Fall direction on R_75, R_10, R_25, R_50, R_100, RDBULL, RDBEAR
@@ -154,3 +154,83 @@ yet checked), and non-price-history approaches (execution-speed arbitrage,
 cross-symbol correlation) -- neither pursued in this session per the project
 owner's decision to stop here rather than keep searching without a new,
 well-motivated hypothesis.
+
+---
+
+## 5. Follow-up session (quantum-tick project, 2026-08-16): four more independent tests, same conclusion
+
+Picking up the untested avenues above, plus re-testing the actual v8
+trading ruleset (not just raw direction statistics) against real data.
+Reproducible via `scripts/run_backtest.py`, `scripts/run_backtest_breakout.py`,
+`scripts/research_cross_symbol.py`, `scripts/run_position_sizing_comparison.py`.
+
+**v8's full SMC-style ruleset** (trend + BOS/CHoCH + ENGULFING/HOP entries +
+5 additional filters), no-lookahead bar-replay against 60 real days
+(86,400 1-min candles) per symbol on R_10/25/50/75/100: no statistically
+significant out-of-sample edge on any symbol (n=416-454 out-of-sample
+trades/symbol). R_10 is significantly *losing* (out-of-sample edge -7.4%,
+p=0.0026). Max consecutive losses observed: 8-13 per symbol.
+
+**Step Index / Jump Index do offer Rise/Fall** (CALL/PUT) -- corrects an
+earlier bug in this session where `contracts_for` was called with an
+invalid `currency` field (see PROJECT_POSTMORTEM item 6) and every result
+silently came back "unavailable". Range Break and Boom/Crash confirmed to
+NOT offer Rise/Fall (MULTUP/MULTDOWN/ACCU only), consistent with section 4
+above. Step/Jump were not further tested this session (project owner chose
+to stay focused on R_10-R_100 for now) -- a real, still-open avenue for
+whoever picks this up next.
+
+**Cross-symbol lead-lag**: Pearson correlation between every pair of
+{R_10,R_25,R_50,R_75,R_100} at lags -5..+5 minutes, aligned by shared
+candle epoch (110 pair/lag combinations, Bonferroni-corrected threshold
+p<0.000455). Zero combinations survived correction. No evidence these
+series lead/lag each other, consistent with independently-generated RNGs.
+
+**Day-of-week bias**: never checked in the original research (only
+hour-of-day was). All 7 days x 5 symbols land in 49.5%-50.8% green, with
+n~11,000-13,000 candles per bucket -- pure noise, no effect (unsurprising:
+these trade 24/7 with no real weekly session structure).
+
+**Donchian channel breakout** -- a genuinely different strategy family
+from v8 (classic 20-period channel breakout, fixed parameters chosen
+before running, not tuned to this data): a much larger, cleaner sample
+(~2,400 out-of-sample trades/symbol vs. v8's ~430) shows **every symbol
+losing relative to breakeven in both in-sample and out-of-sample splits**,
+3 of 5 significantly so (R_10, R_75, R_100). Win rates cluster tightly at
+48-51%, i.e. close to a fair coin -- exactly what's expected if direction
+truly can't be predicted from price history: an entry rule can only choose
+*which* fair coin-flips to take, not make the coin unfair, so it converges
+to the fair-coin rate minus the house edge built into the payout ratio.
+
+**Martingale position sizing does not fix a lack of edge, and is
+dangerous in practice.** Simulated flat-stake ($1) vs. classic martingale
+(x2 after each loss, reset on win) over the breakout strategy's real trade
+sequences: with a hypothetical $1,000 bankroll, martingale required a
+single bet the account couldn't cover ("ruin") within the first 21%-39% of
+trades on **every symbol** (peak required stake ~$1,024, i.e. 2^10 x the
+$1 base, from an ordinary observed 10-loss streak). Final P&L under
+martingale was also worse than flat-stake on 3 of 5 symbols; the two that
+looked "better" only did because the simulation was cut short at ruin, not
+because martingale actually outperformed.
+
+### Updated overall conclusion
+
+Two structurally different strategy families (SMC pattern-based, and
+classic channel breakout), cross-symbol correlation, day-of-week, and the
+original direction/autocorrelation/runs-test battery all agree: **no
+exploitable directional edge in R_10-R_100 Rise/Fall has been found**, and
+results consistently cluster at/below the fair-coin rate, below the real
+breakeven line. This is the expected signature of a genuinely fair,
+RNG-driven instrument with a house edge in the payout structure, not a
+strategy-design problem waiting to be solved with a cleverer rule.
+
+Continuing to invent and test more rule variants against this same 60-day
+dataset would not be a neutral next step -- at a 5% significance threshold,
+roughly 1 in 20 genuinely edge-less strategies will appear "significant" by
+chance alone, so open-ended searching eventually manufactures a false
+positive rather than finding a real one. Genuinely open avenues, if this is
+picked up again: Step/Jump indices (confirmed Rise/Fall-eligible, not yet
+tested), a real market with actual order-flow microstructure (forex/crypto
+via a different broker/API) where technical patterns have a real
+theoretical basis, or accepting there's no edge here and running the
+existing bot as a demo/paper-trading exercise rather than a search for one.

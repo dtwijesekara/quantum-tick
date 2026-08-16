@@ -36,8 +36,9 @@ src/quantum_tick/
                   LiveTradingService (the live scan/trade loop).
   backtesting/    Bar-by-bar replay engine, outcome scoring against real
                   expiry prices, in-sample/out-of-sample stats, reporting.
-scripts/          CLI entrypoints: diagnose_auth, fetch_history,
-                  run_backtest, run_live.
+scripts/          CLI entrypoints: diagnose_auth, fetch_history, run_backtest,
+                  run_backtest_breakout, run_live, run_position_sizing_comparison,
+                  research_cross_symbol, research_new_indices.
 tests/            Unit tests for the domain/backtesting layers.
 docs/postmortem/  Prior integration lessons (imported from this project's
                   own history) — read before touching the Deriv client.
@@ -85,15 +86,31 @@ targets, outcome scoring, pagination boundary math, backtest statistics).
 
 ## Before trusting a backtest result
 
-This project's own prior research
+This project's research
 ([docs/research/RESEARCH_FINDINGS.md](docs/research/RESEARCH_FINDINGS.md))
-rigorously tested Deriv synthetic-indices direction (autocorrelation, runs
-tests, streak continuation, mean reversion, multiple symbols) and found no
-statistically real edge anywhere — consistent with Deriv operating these as
-fair-by-design instruments. That doesn't mean the v8 ruleset can't work
-(it's a different, more specific rule set than what was tested there), but
-it's the right prior to hold: `run_backtest.py` reports win rate against the
-*real* payout-derived breakeven line (not 50%), splits results
-chronologically into in-sample/out-of-sample, and flags whether any edge is
-statistically significant — read the out-of-sample numbers, not the
-in-sample ones, before deciding anything changes.
+now covers two independent strategy families (v8's SMC-style ruleset and a
+classic Donchian breakout), cross-symbol lead-lag, day-of-week bias, and the
+original direction/autocorrelation/runs-test battery — all converging on
+the same answer: no exploitable directional edge found in R_10-R_100
+Rise/Fall, with results clustering at/below the fair-coin rate, below the
+real breakeven line. That's the expected signature of a fair, RNG-driven
+instrument with a house edge in the payout structure. `run_backtest.py` /
+`run_backtest_breakout.py` report win rate against the *real* payout-derived
+breakeven line (not 50%), split chronologically into in-sample/out-of-sample
+with significance testing and max-consecutive-loss tracking — read the
+out-of-sample numbers, not the in-sample ones.
+
+`scripts/run_position_sizing_comparison.py` compares flat-stake vs.
+martingale sizing on real trade sequences: martingale does not fix a lack
+of edge (bet sizing can't change win probability), and empirically would
+have ruined a $1,000 account well before finishing the 60-day backtest
+period on every symbol tested, from ordinary observed losing streaks.
+
+If you pick this project back up looking for an edge, don't just keep
+inventing rule variants against this same 60-day dataset — at 5%
+significance, ~1 in 20 genuinely edge-less strategies will look
+"significant" by chance alone, so open-ended searching eventually
+manufactures a false positive. Genuinely untested avenues instead: Step
+Index / Jump Index (confirmed to offer Rise/Fall, unlike Range
+Break/Boom/Crash — see RESEARCH_FINDINGS.md section 5), or a market with
+real order-flow microstructure.
