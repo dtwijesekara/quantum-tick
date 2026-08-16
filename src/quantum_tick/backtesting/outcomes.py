@@ -36,6 +36,7 @@ class TradeOutcome:
     payout_ratio: float
     outcome: str  # "won" | "lost"
     pnl: float  # per $1 stake, using payout_ratio
+    technique: str = ""
 
 
 def score_signal(
@@ -44,6 +45,7 @@ def score_signal(
     contract_type: str,
     duration_mins: int,
     payout_ratio: float,
+    technique: str = "",
 ) -> TradeOutcome | None:
     """`candles` is the full oldest-first series. `entry_idx` is the index of
     the candle whose OPEN is the entry price. Returns None if there isn't
@@ -73,4 +75,5 @@ def score_signal(
         payout_ratio=payout_ratio,
         outcome="won" if won else "lost",
         pnl=pnl,
+        technique=technique,
     )

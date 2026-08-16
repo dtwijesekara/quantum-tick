@@ -1,12 +1,15 @@
-"""Bar-by-bar replay of the v8 strategy against real historical candles.
+"""Bar-by-bar replay against real historical candles -- one engine shared by
+every strategy (domain/strategies/*), not one per strategy. Previously v8
+and breakout each had their own near-duplicate loop; adding a new strategy
+now means writing a domain/strategies/*.py class, nothing here changes.
 
-No-lookahead guarantee: at replay step k, the strategy only ever sees
-candles[0:k+1], and the only filter that reads the last element
-(candles[-1], the "still forming" candle) is `is_late_entry` -- which we
-disable in backtest mode (there's no historical sub-candle tick data to
-evaluate it against honestly). Entry executes at that candle's OPEN, so
-every input to the trading decision was already fully closed by the time of
-entry. See outcomes.py for the entry/expiry pricing rationale.
+No-lookahead guarantee: at replay step k, a strategy only ever sees
+candles[0:k+1]. v8's `is_late_entry` filter (the only filter that reads the
+"still forming" last candle) is disabled in backtest mode -- there's no
+historical sub-candle tick data to evaluate it against honestly. Entry
+executes at that candle's OPEN, so every input to the trading decision was
+already fully closed by the time of entry. See outcomes.py for the
+entry/expiry pricing rationale.
 
 One open position per symbol at a time (after a signal fires, replay skips
 ahead past its expiry before scanning again) -- this mirrors the live bot's
@@ -23,69 +26,58 @@ from dataclasses import dataclass, field
 
 from quantum_tick.backtesting.outcomes import TradeOutcome, score_signal
 from quantum_tick.backtesting.payouts import PayoutTable, payout_ratio_for
-from quantum_tick.domain.models import StrategyParams
-from quantum_tick.domain.state import FiredCandleTracker
-from quantum_tick.domain.strategy import evaluate_signal
-
-
-def required_window(params: StrategyParams) -> int:
-    return params.min_candles_needed() + 6  # mirrors dt_bot_v8's live per-scan candle_count buffer
+from quantum_tick.domain.strategies.base import Strategy
 
 
 @dataclass
 class SymbolBacktestResult:
     symbol: str
     outcomes: list[TradeOutcome] = field(default_factory=list)
-    techniques: list[str] = field(default_factory=list)  # parallel to `outcomes`
-    skip_counts: dict[str, int] = field(default_factory=dict)
 
 
 def run_symbol_backtest(
     symbol: str,
     candles: list[dict],
-    params: StrategyParams,
+    strategy: Strategy,
     payout_table: PayoutTable,
 ) -> SymbolBacktestResult:
     result = SymbolBacktestResult(symbol=symbol)
-    tracker = FiredCandleTracker()
-    window = required_window(params)
+    window = strategy.required_window
     n = len(candles)
 
-    k = params.min_candles_needed()
+    k = window
     while k < n - 1:
-        start = max(0, k + 1 - window)
-        window_slice = candles[start : k + 1]
+        window_slice = candles[max(0, k + 1 - window) : k + 1]
 
-        eval_result = evaluate_signal(window_slice, symbol, params, tracker, check_late_entry=False)
-
-        if eval_result.skip_reason:
-            result.skip_counts[eval_result.skip_reason] = result.skip_counts.get(eval_result.skip_reason, 0) + 1
+        detected = strategy.detect(window_slice, symbol)
+        if detected is None:
             k += 1
             continue
 
-        signal = eval_result.signal
-        tracker.mark_fired(symbol, window_slice)
-
-        payout_ratio = payout_ratio_for(payout_table, symbol, signal.duration_mins)
-        outcome = score_signal(candles, k, signal.contract_type, signal.duration_mins, payout_ratio)
+        payout_ratio = payout_ratio_for(payout_table, symbol, detected.duration_mins)
+        outcome = score_signal(
+            candles, k, detected.contract_type, detected.duration_mins, payout_ratio, detected.technique
+        )
 
         if outcome is None:
             k += 1  # not enough trailing history to score (tail of dataset); just advance
             continue
 
         result.outcomes.append(outcome)
-        result.techniques.append("+".join(signal.entries))
-        k += signal.duration_mins  # one open position per symbol at a time
+        k += detected.duration_mins  # one open position per symbol at a time
 
     return result
 
 
 def run_backtest(
     candles_by_symbol: dict[str, list[dict]],
-    params: StrategyParams,
+    strategy_factory,
     payout_table: PayoutTable,
 ) -> dict[str, SymbolBacktestResult]:
+    """`strategy_factory` is a zero-arg callable returning a *fresh*
+    Strategy instance -- each symbol gets its own so per-symbol state (e.g.
+    v8's same-candle lock) never leaks across symbols."""
     return {
-        symbol: run_symbol_backtest(symbol, candles, params, payout_table)
+        symbol: run_symbol_backtest(symbol, candles, strategy_factory(), payout_table)
         for symbol, candles in candles_by_symbol.items()
     }

@@ -12,7 +12,6 @@ from quantum_tick.backtesting.metrics import SampleStats, compute_stats, max_str
 class SymbolReport:
     symbol: str
     total_signals: int
-    skip_counts: dict[str, int]
     in_sample: SampleStats | None
     out_of_sample: SampleStats | None
     max_consecutive_losses: int
@@ -30,7 +29,6 @@ def build_report(
             SymbolReport(
                 symbol=symbol,
                 total_signals=len(result.outcomes),
-                skip_counts=result.skip_counts,
                 in_sample=compute_stats(in_s),
                 out_of_sample=compute_stats(out_s),
                 max_consecutive_losses=max_streak(result.outcomes, "lost"),
@@ -57,9 +55,9 @@ def format_report(reports: list[SymbolReport]) -> str:
                 f"{stats.win_rate*100:>7.1f}% {stats.breakeven_rate*100:>10.1f}% "
                 f"{stats.edge*100:>+7.1f}% {stats.z:>7.2f} {stats.p_value:>9.4f} {verdict:>12}"
             )
-        lines.append(f"{r.symbol:<8} max consecutive losses: {r.max_consecutive_losses}   "
+        lines.append(f"{r.symbol:<8} total_signals={r.total_signals}  "
+                     f"max consecutive losses: {r.max_consecutive_losses}   "
                      f"max consecutive wins: {r.max_consecutive_wins}")
-        lines.append(f"{r.symbol:<8} skip_counts: {r.skip_counts}")
         lines.append("-" * 100)
 
     lines.append("=" * 100)
@@ -72,7 +70,6 @@ def save_report_json(reports: list[SymbolReport], path: Path) -> None:
         {
             "symbol": r.symbol,
             "total_signals": r.total_signals,
-            "skip_counts": r.skip_counts,
             "in_sample": asdict(r.in_sample) if r.in_sample else None,
             "out_of_sample": asdict(r.out_of_sample) if r.out_of_sample else None,
             "max_consecutive_losses": r.max_consecutive_losses,
