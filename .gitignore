@@ -1,0 +1,31 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Data & logs (generated, can be large / instrument-specific)
+data/
+logs/
+*.log
+*.db
+*.sqlite3
+
+# Backtest output
+reports/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
