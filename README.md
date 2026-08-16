@@ -45,11 +45,18 @@ src/quantum_tick/
   research/       General-purpose stats (autocorrelation, runs test,
                   cross-series correlation) for edge-hunting, separate from
                   the live trading path.
+  indicators.py   SMA/EMA/RSI/MACD (hand-verified), shared by domain
+                  strategies and the xmlbots interpreter below.
+  xmlbots/        Parser + IR + interpreter that turns a Deriv Bot (DBot)
+                  Blockly XML export into the same Strategy interface as
+                  everything else -- lets a real external bot collection be
+                  mined and backtested like any in-house strategy. See
+                  domain/strategies/xmlbot_strategy.py for the adapter.
 scripts/          CLI entrypoints: diagnose_auth, fetch_history, run_backtest
                   (--strategy v8|breakout|random|all), run_live,
                   run_position_sizing_comparison, research_cross_symbol,
-                  research_new_indices.
-tests/            Unit tests for the domain/backtesting layers.
+                  research_new_indices, xmlbots_scan_corpus, xmlbots_backtest.
+tests/            Unit tests for the domain/backtesting/xmlbots layers.
 docs/postmortem/  Prior integration lessons (imported from this project's
                   own history) — read before touching the Deriv client.
 docs/research/    Prior statistical research into whether Deriv synthetic
@@ -118,11 +125,18 @@ of edge (bet sizing can't change win probability), and empirically would
 have ruined a $1,000 account well before finishing the 60-day backtest
 period on every symbol tested, from ordinary observed losing streaks.
 
+35 more strategies were mined from a real external collection of 3,358
+community-authored Deriv bots (ORSTAC) via `scripts/xmlbots_backtest.py` —
+same answer: 0 of 140 out-of-sample (strategy, symbol) comparisons survived
+Bonferroni correction with a positive edge (115 were significant, and every
+one of those 115 was a *loss* — see RESEARCH_FINDINGS.md section 8).
+
 If you pick this project back up looking for an edge, don't just keep
 inventing rule variants against this same 60-day dataset — at 5%
 significance, ~1 in 20 genuinely edge-less strategies will look
 "significant" by chance alone, so open-ended searching eventually
-manufactures a false positive. Genuinely untested avenues instead: Step
+manufactures a false positive. Genuinely untested avenues instead: the 658
+tick-duration ORSTAC bots (needs real tick data, not built here), Step
 Index / Jump Index (confirmed to offer Rise/Fall, unlike Range
 Break/Boom/Crash — see RESEARCH_FINDINGS.md section 5), or a market with
 real order-flow microstructure.

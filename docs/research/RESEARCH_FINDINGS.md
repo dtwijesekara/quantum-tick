@@ -276,26 +276,90 @@ payout ratio, showing up with enough samples to be statistically obvious
 
 Reproducible via `python scripts/run_backtest.py --strategy all`.
 
+## 8. Mining 3,358 real community bots (ORSTAC corpus): same answer, from strategies we didn't design
+
+A separate collection (github.com/alanvito1/ORSTAC, "4,000+ open-source
+Deriv bots" scraped from trading Telegram/Facebook communities, mostly
+Vietnamese/Portuguese-authored) was mined for genuinely independent
+strategy ideas rather than more hypotheses invented in-house. Built:
+`src/quantum_tick/xmlbots/` -- a Blockly-XML parser + IR + interpreter that
+turns a Deriv Bot (DBot) export into the same `Strategy` interface v8/
+breakout/random already use, plus `domain/indicators.py` (SMA/EMA/RSI/MACD,
+hand-verified, the only indicator vocabulary actually present in the
+corpus -- no Bollinger/Stochastic/ADX despite one bot's own marketing
+description claiming Bollinger logic).
+
+**The repo's own "curated" claims don't hold up.** Its `champions/`
+folder markets 3 "elite, forensically-audited" bots; one of them
+(`Rise-Fall - Consistent - Trends.xml`, described as "the master of
+survival") turned out to have **no entry logic at all** -- it unconditionally
+buys CALL every time, wrapped in a gentle martingale-like stake
+progression. The repo also carries Deriv/BingX referral links throughout,
+consistent with it being partly an affiliate funnel -- a reason to verify
+everything independently rather than trust any in-repo performance claims,
+which is what the rest of this section does.
+
+**Corpus filtering**: of 3,358 bots, 981 are Rise/Fall on R_10-R_100.
+Two-thirds (658) trade on tick-based duration/indicators -- out of scope
+for this candle-based backtester (a tick-duration contract resolves in
+seconds, faster than 1-minute candle data can honestly score; flagged as a
+genuinely open follow-on, not silently approximated). Of the time-based
+remainder, the parser fully resolved **160 bots -> 35 distinct strategies**
+after deduping near-identical copies (community collections are mostly a
+handful of real ideas re-shared under many filenames with cosmetic stake
+differences -- one dedup group alone had 26 near-duplicate files).
+Real, encountered parser gaps along the way (fixed): duration specified
+directly on the market block instead of a separate `tradeOptions` block;
+purchase decisions made by an if *nested inside* another if's branch
+(needed a recursive decision-tree IR, not a flat one -- this alone
+doubled the usable corpus); indicators computed into a named variable and
+referenced later rather than inlined. Remaining unsupported constructs
+(custom Blockly procedures, `Last Result`-dependent logic, a few other
+block types) are real, documented scope boundaries, not silent
+approximations.
+
+**Result**: all 35 distinct strategies backtested against all 5 symbols,
+same no-lookahead engine, same real payout-derived breakeven line, same
+in-sample/out-of-sample split as every other strategy in this project.
+140 (strategy, symbol) pairs produced a scoreable out-of-sample sample.
+Of those:
+- 115 were "significant" at the raw, *uncorrected* p<0.05 level -- and
+  **every single one of the 115 was a significant loss**, not a win (the
+  same large-sample house-edge signature the random baseline already
+  demonstrated in section 7).
+- Only 8 of 140 showed any positive edge at all, and none were significant
+  even before correction.
+- With a Bonferroni threshold sized to the actual 140 comparisons
+  (p<0.000357), **zero survived** with a positive edge.
+
+Reproducible via `python scripts/xmlbots_scan_corpus.py` (corpus
+statistics) and `python scripts/xmlbots_backtest.py` (full backtest).
+
 ### Updated overall conclusion
 
-Two structurally different strategy families (SMC pattern-based, and
+Two structurally different in-house strategy families (SMC pattern-based,
 classic channel breakout), a random coin-flip control, cross-symbol
-correlation, day-of-week, and the original direction/autocorrelation/runs-
-test battery all agree: **no exploitable directional edge in R_10-R_100
-Rise/Fall has been found**, and results consistently cluster at/below the
-fair-coin rate -- statistically indistinguishable from the random
-baseline -- below the real breakeven line. Section 6 explains *why*: this
-is the expected signature of a CSPRNG-driven instrument by cryptographic
-design, corroborated by an independent 15M-tick analysis, not a
-strategy-design problem waiting to be solved with a cleverer rule.
+correlation, day-of-week, the original direction/autocorrelation/runs-test
+battery, **and 35 independently-authored real community strategies mined
+from 3,358 candidates** all agree: **no exploitable directional edge in
+R_10-R_100 Rise/Fall has been found**, and results consistently cluster
+at/below the fair-coin rate -- statistically indistinguishable from the
+random baseline -- below the real breakeven line. Section 6 explains *why*:
+this is the expected signature of a CSPRNG-driven instrument by
+cryptographic design, corroborated by an independent 15M-tick external
+analysis, not a strategy-design problem waiting to be solved with a
+cleverer rule -- and now also not a problem solvable by borrowing someone
+else's rule instead of inventing one.
 
 Continuing to invent and test more rule variants against this same 60-day
 dataset would not be a neutral next step -- at a 5% significance threshold,
 roughly 1 in 20 genuinely edge-less strategies will appear "significant" by
 chance alone, so open-ended searching eventually manufactures a false
 positive rather than finding a real one. Genuinely open avenues, if this is
-picked up again: Step/Jump indices (confirmed Rise/Fall-eligible, not yet
-tested), a real market with actual order-flow microstructure (forex/crypto
-via a different broker/API) where technical patterns have a real
-theoretical basis, or accepting there's no edge here and running the
-existing bot as a demo/paper-trading exercise rather than a search for one.
+picked up again: the 658 tick-based ORSTAC bots (needs real tick-level data
+and a parallel tick-duration engine, not built here), Step/Jump indices
+(confirmed Rise/Fall-eligible, not yet tested), a real market with actual
+order-flow microstructure (forex/crypto via a different broker/API) where
+technical patterns have a real theoretical basis, or accepting there's no
+edge here and running the existing bot as a demo/paper-trading exercise
+rather than a search for one.
